@@ -5,18 +5,18 @@ from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.enums import ChatType
 
-# Web Server Render-iif barbaachisu (Akka inni active ta'uuf)
+# Flask Web Server
 web_app = Flask('')
 
 @web_app.route('/')
 def home():
-    return "Userbot is alive!"
+    return "Userbot Web Service is running!"
 
 def run_web():
     port = int(os.environ.get("PORT", 8080))
     web_app.run(host='0.0.0.0', port=port)
 
-# Client setup
+# Credentials
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 STRING_SESSION = os.environ.get("STRING_SESSION")
@@ -36,8 +36,13 @@ async def auto_forward(client, message):
             except Exception as e:
                 print(f"Gara {dialog.chat.title} erguun hin danda'amne: {e}")
 
+async def main():
+    Thread(target=run_web, daemon=True).start()
+    print("Userbot Render irratti hojii eegaleera...")
+    await app.start()
+    await asyncio.Event().wait()
+
 if __name__ == "__main__":
-    # Web server background irratti baneera
-    Thread(target=run_web).start()
-    print("Userbot hojii eegaleera...")
-    app.run()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main())
