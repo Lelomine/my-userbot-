@@ -1,17 +1,22 @@
 import os
 import asyncio
+from threading import Thread
 from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.enums import ChatType
 
-# Render Web Service
+# Render Web Service Keep-Alive
 web_app = Flask(__name__)
 
 @web_app.route('/')
 def home():
-    return "Userbot Web Service is active!"
+    return "Userbot Web Service is Active!"
 
-# Environment variables
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    web_app.run(host='0.0.0.0', port=port)
+
+# Variables
 API_ID = int(os.environ.get("API_ID", 0))
 API_HASH = os.environ.get("API_HASH", "")
 STRING_SESSION = os.environ.get("STRING_SESSION", "")
@@ -27,7 +32,6 @@ async def auto_forward(client, message):
     if not message.chat:
         return
 
-    # Channel username fi ID unified check gochuuf:
     msg_uname = f"@{message.chat.username}".lower() if message.chat.username else ""
     msg_id = message.chat.id
 
@@ -45,21 +49,19 @@ async def auto_forward(client, message):
                 try:
                     await message.forward(dialog.chat.id)
                     print(f"--> [SUCCESS] Gara Group '{dialog.chat.title}' ergameera.")
-                    await asyncio.sleep(60)  # Delay amansiisaa (sekondii 60)
+                    await asyncio.sleep(60) # Delay sekondii 60
                 except Exception as e:
                     print(f"--> [ERROR] Group '{dialog.chat.title}' irratti erguun dide: {e}")
 
-async def start_services():
+async def main():
     global SOURCE_CHAT_ID
-    import hypercorn.asyncio
-    from hypercorn.config import Config
-
-    config = Config()
-    config.bind = [f"0.0.0.0:{os.environ.get('PORT', 8080)}"]
     
+    # Web server thread addaatiin jalqabsiisuu
+    Thread(target=run_flask, daemon=True).start()
+    
+    # Telegram Client start gochuu
     await app.start()
     
-    # Resolving channel chat ID
     try:
         chat = await app.get_chat(SOURCE_INPUT)
         SOURCE_CHAT_ID = chat.id
@@ -70,7 +72,9 @@ async def start_services():
     except Exception as e:
         print(f"\n[WARNING] Channel '{SOURCE_INPUT}' ID argachuun hin danda'amne: {e}\n")
 
-    await hypercorn.asyncio.serve(web_app, config)
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    asyncio.run(start_services())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main())
